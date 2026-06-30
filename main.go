@@ -1,11 +1,14 @@
 package main
 
 import (
+	"archive/zip"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
+	"path"
+	"strings"
 	"time"
 )
 
@@ -57,6 +60,15 @@ func main() {
 
 	fmt.Println(linux)
 
+	filename, err := getServer(linux.DownloadUrl)
+	if err != nil {
+		panic(err)
+	}
+
+	if err := unzip(*filename); err != nil {
+		panic(err)
+	}
+
 	// now := time.Now()
 	// temp := State{
 	// 	Version:   "1.1.1.1.1",
@@ -66,6 +78,98 @@ func main() {
 	// if err := writeState(temp); err != nil {
 	// 	panic(err)
 	// }
+}
+
+func unzip(filename string) error {
+	z, err := zip.OpenReader(filename)
+	if err != nil {
+		panic(err)
+	}
+	defer z.Close()
+
+	ext := path.Ext(filename)
+	dirname := strings.TrimSuffix(filename, ext)
+
+	// 前回のディレクトリが残っていたっ場合削除
+	_, err = os.Stat(dirname)
+	if err := os.RemoveAll(dirname); err != nil {
+		return err
+	}
+
+	// ファイル名のディレクトリを作成する
+	if err := os.MkdirAll(dirname, os.ModeDir); err != nil {
+		panic(err)
+	}
+
+	for _, f := range z.File {
+		rc, err := f.Open()
+		if err != nil {
+			return err
+		}
+		defer rc.Close()
+
+		path := path.Join(dirname, f.Name)
+		if f.FileInfo().IsDir() {
+			os.MkdirAll(path, f.Mode())
+		} else {
+			f, err := os.OpenFile(
+				path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
+			if err != nil {
+				return err
+			}
+			defer f.Close()
+
+			_, err = io.Copy(f, rc)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func getServer(url string) (filename *string, err error) {
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// ヘッダを設定
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
+	req.Header.Set("Accept", "application/octet-stream")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	_, fn := path.Split(url)
+
+	// 前回のzipが残っていた場合削除
+	_, err = os.Stat(fn)
+	if os.IsExist(err) {
+		if err := os.Remove(fn); err != nil {
+			return nil, err
+		}
+	}
+
+	file, err := os.OpenFile(fn, os.O_CREATE|os.O_WRONLY, 0666)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	file.Write(body)
+
+	return &fn, nil
 }
 
 func getServerDownloadLinkList() (*ServerDownloadLinkList, error) {
@@ -99,7 +203,7 @@ func getServerDownloadLinkList() (*ServerDownloadLinkList, error) {
 	}
 
 	// 返す前にディレイを入れる (負荷によるブロック避け)
-	time.Sleep(1 * time.Minute)
+	// time.Sleep(1 * time.Minute)
 
 	return &list, nil
 }
