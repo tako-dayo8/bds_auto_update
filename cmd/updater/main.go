@@ -8,11 +8,14 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"regexp"
 	"strings"
 	"time"
 )
 
 const STATE_FILE_PATH = "./state.json"
+const SERVER_PROPERTIES = "server.properties"
+const PERMISSIONS_JSON = "permissions.json"
 const SERVER_LIST_URL = "https://net-secondary.web.minecraft-services.net/api/v1.0/download/links"
 
 type State struct {
@@ -41,14 +44,14 @@ func main() {
 		panic(err)
 	}
 
-	fmt.Println(state)
+	fmt.Println("state.json: ", state)
 
 	list, err := getServerDownloadLinkList()
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Println(list)
+	fmt.Println("downloadLinkList: ", list)
 
 	var linux Links
 	for _, link := range list.Links {
@@ -58,29 +61,78 @@ func main() {
 		}
 	}
 
-	fmt.Println(linux)
+	fmt.Println("linuxLink", linux)
+
+	// 最新バージョンであった場合終了
+	if strings.Contains(linux.DownloadUrl, state.Version) {
+		fmt.Println("最新バージョンです")
+		os.Exit(0)
+	}
 
 	filename, err := getServer(linux.DownloadUrl)
 	if err != nil {
 		panic(err)
 	}
 
-	if err := unzip(*filename); err != nil {
+	dirname, err := unzip(*filename)
+	if err != nil {
 		panic(err)
 	}
 
-	// now := time.Now()
-	// temp := State{
-	// 	Version:   "1.1.1.1.1",
-	// 	InstallAt: &now,
-	// }
+	if err := swapConfigFile(*dirname); err != nil {
+		panic(err)
+	}
 
-	// if err := writeState(temp); err != nil {
-	// 	panic(err)
-	// }
+	re := regexp.MustCompile(`[\d]+(?:\.[\d]+)+`)
+	version := re.FindString(*dirname)
+
+	fmt.Println("get version: ", version)
+
+	now := time.Now()
+	newsate := State{
+		Version:   version,
+		InstallAt: &now,
+	}
+
+	if err := writeState(newsate); err != nil {
+		panic(err)
+	}
 }
 
-func unzip(filename string) error {
+func swapConfigFile(dirname string) error {
+	// ダウンロードしてきた permissions.json, server.propertiesを削除
+	if err := os.Remove(path.Join(dirname, SERVER_PROPERTIES)); err != nil {
+		return err
+	}
+	if err := os.Remove(path.Join(dirname, PERMISSIONS_JSON)); err != nil {
+		return err
+	}
+
+	// config配下の permissions.json, server.properties をコピー
+	for _, file := range []string{SERVER_PROPERTIES, PERMISSIONS_JSON} {
+		src, err := os.Open(path.Join("config", file))
+		if err != nil {
+			return err
+		}
+
+		dst, err := os.Create(path.Join(dirname, file))
+		if err != nil {
+			return err
+		}
+
+		if _, err := io.Copy(dst, src); err != nil {
+			return err
+		}
+
+		// ループ内のため即時クローズ
+		src.Close()
+		dst.Close()
+	}
+
+	return nil
+}
+
+func unzip(filename string) (dirname *string, err error) {
 	z, err := zip.OpenReader(filename)
 	if err != nil {
 		panic(err)
@@ -88,45 +140,45 @@ func unzip(filename string) error {
 	defer z.Close()
 
 	ext := path.Ext(filename)
-	dirname := strings.TrimSuffix(filename, ext)
+	dn := strings.TrimSuffix(filename, ext)
 
 	// 前回のディレクトリが残っていたっ場合削除
-	_, err = os.Stat(dirname)
-	if err := os.RemoveAll(dirname); err != nil {
-		return err
+	_, err = os.Stat(dn)
+	if err := os.RemoveAll(dn); err != nil {
+		return &dn, err
 	}
 
 	// ファイル名のディレクトリを作成する
-	if err := os.MkdirAll(dirname, os.ModeDir); err != nil {
+	if err := os.MkdirAll(dn, os.ModeDir); err != nil {
 		panic(err)
 	}
 
 	for _, f := range z.File {
 		rc, err := f.Open()
 		if err != nil {
-			return err
+			return &dn, err
 		}
 		defer rc.Close()
 
-		path := path.Join(dirname, f.Name)
+		path := path.Join(dn, f.Name)
 		if f.FileInfo().IsDir() {
 			os.MkdirAll(path, f.Mode())
 		} else {
 			f, err := os.OpenFile(
 				path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
 			if err != nil {
-				return err
+				return &dn, err
 			}
 			defer f.Close()
 
 			_, err = io.Copy(f, rc)
 			if err != nil {
-				return err
+				return &dn, err
 			}
 		}
 	}
 
-	return nil
+	return &dn, nil
 }
 
 func getServer(url string) (filename *string, err error) {
