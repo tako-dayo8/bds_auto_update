@@ -2,6 +2,7 @@ package main
 
 import (
 	"archive/zip"
+	"bedrock_server_auto_update/cmd/internal/state"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -13,15 +14,9 @@ import (
 	"time"
 )
 
-const STATE_FILE_PATH = "./state.json"
 const SERVER_PROPERTIES = "server.properties"
 const PERMISSIONS_JSON = "permissions.json"
 const SERVER_LIST_URL = "https://net-secondary.web.minecraft-services.net/api/v1.0/download/links"
-
-type State struct {
-	Version   string     `json:"version"`
-	InstallAt *time.Time `json:"install_at"`
-}
 
 type FetchResult struct {
 	Result ServerDownloadLinkList `json:"result"`
@@ -39,12 +34,12 @@ type Links struct {
 func main() {
 	fmt.Println("hello world")
 
-	state, err := loadState()
+	s, err := state.LoadState()
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Println("state.json: ", state)
+	fmt.Println("state.json: ", s)
 
 	list, err := getServerDownloadLinkList()
 	if err != nil {
@@ -64,7 +59,7 @@ func main() {
 	fmt.Println("linuxLink", linux)
 
 	// 最新バージョンであった場合終了
-	if strings.Contains(linux.DownloadUrl, state.Version) {
+	if strings.Contains(linux.DownloadUrl, s.Version) {
 		fmt.Println("最新バージョンです")
 		os.Exit(0)
 	}
@@ -89,12 +84,12 @@ func main() {
 	fmt.Println("get version: ", version)
 
 	now := time.Now()
-	newsate := State{
+	newsate := state.State{
 		Version:   version,
 		InstallAt: &now,
 	}
 
-	if err := writeState(newsate); err != nil {
+	if err := state.WriteState(newsate); err != nil {
 		panic(err)
 	}
 }
@@ -258,37 +253,4 @@ func getServerDownloadLinkList() (*ServerDownloadLinkList, error) {
 	// time.Sleep(1 * time.Minute)
 
 	return &list, nil
-}
-
-func loadState() (*State, error) {
-	data, err := os.ReadFile(STATE_FILE_PATH)
-	if err != nil {
-		defaultState := State{}
-		data, err = json.Marshal(defaultState)
-		if err != nil {
-			return nil, err
-		}
-		if err = os.WriteFile(STATE_FILE_PATH, data, 0644); err != nil {
-			return nil, err
-		}
-	}
-
-	var state State
-	if err := json.Unmarshal(data, &state); err != nil {
-		return nil, err
-	}
-
-	return &state, nil
-}
-
-func writeState(state State) error {
-	data, err := json.Marshal(state)
-	if err != nil {
-		return err
-	}
-	if err := os.WriteFile(STATE_FILE_PATH, []byte(data), 0644); err != nil {
-		return err
-	}
-
-	return nil
 }
