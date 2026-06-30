@@ -1,0 +1,42 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Build binaries
+        run: |
+          GOOS=linux GOARCH=amd64 go build -o setup-linux-amd64 ./cmd/setup
+          GOOS=linux GOARCH=amd64 go build -o updater-linux-amd64 ./cmd/updater
+
+      - name: Generate release tag
+        id: tag
+        run: echo "tag=v$(date +'%Y%m%d%H%M%S')" >> "$GITHUB_OUTPUT"
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: Release ${{ steps.tag.outputs.tag }}
+          files: |
+            setup-linux-amd64
+            updater-linux-amd64
+          generate_release_notes: true
