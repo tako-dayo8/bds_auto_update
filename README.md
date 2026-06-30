@@ -23,6 +23,20 @@ bedrock_server_auto_update/
 └── go.mod
 ```
 
+## ダウンロード
+
+ビルド済みの Linux バイナリは [GitHub Releases](https://github.com/tako-dayo8/bds_auto_update/releases/latest) からダウンロードできます。
+
+```sh
+# setup バイナリ
+curl -LO https://github.com/tako-dayo8/bds_auto_update/releases/latest/download/setup-linux-amd64
+chmod +x setup-linux-amd64
+
+# updater バイナリ
+curl -LO https://github.com/tako-dayo8/bds_auto_update/releases/latest/download/updater-linux-amd64
+chmod +x updater-linux-amd64
+```
+
 ## 使い方
 
 ### 1. 初回セットアップ
