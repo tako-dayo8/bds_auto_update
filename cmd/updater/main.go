@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"path"
@@ -36,14 +37,14 @@ func main() {
 
 	s, err := state.LoadState()
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	fmt.Println("state.json: ", s)
 
 	list, err := getServerDownloadLinkList()
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	fmt.Println("downloadLinkList: ", list)
@@ -66,16 +67,16 @@ func main() {
 
 	filename, err := getServer(linux.DownloadUrl)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	dirname, err := unzip(*filename)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	if err := swapConfigFile(*dirname); err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	re := regexp.MustCompile(`[\d]+(?:\.[\d]+)+`)
@@ -90,7 +91,7 @@ func main() {
 	}
 
 	if err := state.WriteState(newsate); err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 }
 
@@ -130,7 +131,7 @@ func swapConfigFile(dirname string) error {
 func unzip(filename string) (dirname *string, err error) {
 	z, err := zip.OpenReader(filename)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 	defer z.Close()
 
@@ -145,7 +146,7 @@ func unzip(filename string) (dirname *string, err error) {
 
 	// ファイル名のディレクトリを作成する
 	if err := os.MkdirAll(dn, os.ModeDir); err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	for _, f := range z.File {
