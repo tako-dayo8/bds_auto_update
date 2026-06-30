@@ -47,6 +47,16 @@ func main() {
 
 	fmt.Println(list)
 
+	var linux Links
+	for _, link := range list.Links {
+		if link.DownloadType == "serverBedrockLinux" {
+			linux = link
+			break
+		}
+	}
+
+	fmt.Println(linux)
+
 	// now := time.Now()
 	// temp := State{
 	// 	Version:   "1.1.1.1.1",
