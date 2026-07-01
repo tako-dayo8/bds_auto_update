@@ -2,12 +2,14 @@ package main
 
 import (
 	"bedrock_server_auto_update/cmd/internal/state"
+	"fmt"
 	"log"
 	"os"
 	"path"
 	"time"
 )
 
+const CONFIG_DIR = "config"
 const SERVER_PROPERTIES = "server.properties"
 const PERMISSIONS_JSON = "permissions.json"
 
@@ -321,18 +323,21 @@ func main() {
 	if err := state.WriteState(base); err != nil {
 		log.Fatal(err)
 	}
+	fmt.Println(state.STATE_FILE_PATH + "を作成しました")
 
 	// config ディレクトリ作成
-	if err := os.Mkdir("config", os.ModeDir); err != nil {
-		log.Fatal(err)
+	if err := os.Mkdir(CONFIG_DIR, os.ModeDir); err != nil {
+		fmt.Println(err)
+	} else {
+		fmt.Println(CONFIG_DIR + "ディレクトリを作成しました")
 	}
 
 	//config/ permissions.json, server.propertiesを作成
-	if err := os.WriteFile(path.Join("config", PERMISSIONS_JSON), []byte(PERMISSIONS_JSON_DEFAULT), 0666); err != nil {
+	if err := os.WriteFile(path.Join(CONFIG_DIR, PERMISSIONS_JSON), []byte(PERMISSIONS_JSON_DEFAULT), 0666); err != nil {
 		log.Fatal(err)
 	}
-	if err := os.WriteFile(path.Join("config", SERVER_PROPERTIES), []byte(SERVER_PROPERTIES_DEFAULT), 0666); err != nil {
+	if err := os.WriteFile(path.Join(CONFIG_DIR, SERVER_PROPERTIES), []byte(SERVER_PROPERTIES_DEFAULT), 0666); err != nil {
 		log.Fatal(err)
 	}
-
+	fmt.Printf("%s,%sを作成しました\n", SERVER_PROPERTIES, PERMISSIONS_JSON)
 }
