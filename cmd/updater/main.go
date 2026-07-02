@@ -33,8 +33,6 @@ type Links struct {
 }
 
 func main() {
-	fmt.Println("hello world")
-
 	s, err := state.LoadState()
 	if err != nil {
 		log.Fatal(err)
@@ -75,12 +73,12 @@ func main() {
 		log.Fatal(err)
 	}
 
-	if err := swapConfigFile(*dirname); err != nil {
+	if err := swapConfigFile(dirname); err != nil {
 		log.Fatal(err)
 	}
 
 	re := regexp.MustCompile(`[\d]+(?:\.[\d]+)+`)
-	version := re.FindString(*dirname)
+	version := re.FindString(dirname)
 
 	fmt.Println("get version: ", version)
 
@@ -128,7 +126,12 @@ func swapConfigFile(dirname string) error {
 	return nil
 }
 
-func unzip(filename string) (dirname *string, err error) {
+// unzip は引数に指定されたzipファイルのpathから同じ名前のディレクトリを作成し、解凍します。
+//
+// 引数：zip ファイルの path
+//
+// 返り値: 解凍したディレクトリ（dirname） 失敗した場合 error を返します
+func unzip(filename string) (string, error) {
 	z, err := zip.OpenReader(filename)
 	if err != nil {
 		log.Fatal(err)
@@ -136,45 +139,45 @@ func unzip(filename string) (dirname *string, err error) {
 	defer z.Close()
 
 	ext := path.Ext(filename)
-	dn := strings.TrimSuffix(filename, ext)
+	dirname := strings.TrimSuffix(filename, ext)
 
 	// 前回のディレクトリが残っていたっ場合削除
-	_, err = os.Stat(dn)
-	if err := os.RemoveAll(dn); err != nil {
-		return &dn, err
+	_, err = os.Stat(dirname)
+	if err := os.RemoveAll(dirname); err != nil {
+		return dirname, err
 	}
 
 	// ファイル名のディレクトリを作成する
-	if err := os.MkdirAll(dn, os.ModeDir); err != nil {
+	if err := os.MkdirAll(dirname, os.ModeDir); err != nil {
 		log.Fatal(err)
 	}
 
 	for _, f := range z.File {
 		rc, err := f.Open()
 		if err != nil {
-			return &dn, err
+			return dirname, err
 		}
 		defer rc.Close()
 
-		path := path.Join(dn, f.Name)
+		path := path.Join(dirname, f.Name)
 		if f.FileInfo().IsDir() {
 			os.MkdirAll(path, f.Mode())
 		} else {
 			f, err := os.OpenFile(
 				path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
 			if err != nil {
-				return &dn, err
+				return dirname, err
 			}
 			defer f.Close()
 
 			_, err = io.Copy(f, rc)
 			if err != nil {
-				return &dn, err
+				return dirname, err
 			}
 		}
 	}
 
-	return &dn, nil
+	return dirname, nil
 }
 
 func getServer(url string) (filename *string, err error) {
