@@ -326,7 +326,7 @@ func main() {
 	fmt.Println(state.STATE_FILE_PATH + "を作成しました")
 
 	// config ディレクトリ作成
-	if err := os.Mkdir(CONFIG_DIR, os.ModeDir); err != nil {
+	if err := os.Mkdir(CONFIG_DIR, 0755); err != nil {
 		fmt.Println(err)
 	} else {
 		fmt.Println(CONFIG_DIR + "ディレクトリを作成しました")
