@@ -6,7 +6,10 @@ import (
 	"log"
 	"os"
 	"path"
+	"strings"
 	"time"
+
+	"github.com/AlecAivazis/survey/v2"
 )
 
 const CONFIG_DIR = "config"
@@ -312,6 +315,8 @@ script-debugger-auto-attach=disabled
 # デフォルト: false`
 
 func main() {
+	fmt.Println("setupを開始します")
+
 	now := time.Now()
 
 	// スタッツファイルの作成
@@ -320,16 +325,38 @@ func main() {
 		InstallAt: &now,
 	}
 
-	if err := state.WriteState(base); err != nil {
-		log.Fatal(err)
-	}
-	fmt.Println(state.STATE_FILE_PATH + "を作成しました")
+	if isExist(state.STATE_FILE_PATH) {
+		var confirm bool
+		prompt := &survey.Confirm{
+			Message: fmt.Sprintf("すでに%sは存在しています、初期値で上書きしますか？", strings.TrimSuffix(state.STATE_FILE_PATH, "./")),
+			Default: false,
+		}
 
-	// config ディレクトリ作成
-	if err := os.Mkdir(CONFIG_DIR, 0755); err != nil {
-		fmt.Println(err)
+		err := survey.AskOne(prompt, confirm)
+		if err != nil {
+			fmt.Println("survey.AskOneに失敗しました: ", err)
+		}
+
+		if confirm {
+			if err := state.WriteState(base); err != nil {
+				log.Fatal(err)
+			}
+			fmt.Println(strings.TrimSuffix(state.STATE_FILE_PATH, "./") + "を初期値で上書きしました")
+		}
 	} else {
-		fmt.Println(CONFIG_DIR + "ディレクトリを作成しました")
+		if err := state.WriteState(base); err != nil {
+			log.Fatal(err)
+		}
+		fmt.Println(strings.TrimSuffix(state.STATE_FILE_PATH, "./") + "を作成しました")
+	}
+
+	if !isExist(CONFIG_DIR) {
+		// config ディレクトリ作成
+		if err := os.Mkdir(CONFIG_DIR, 0755); err != nil {
+			fmt.Println(err)
+		} else {
+			fmt.Println(CONFIG_DIR + "ディレクトリを作成しました")
+		}
 	}
 
 	//config/ permissions.json, server.propertiesを作成
@@ -340,4 +367,15 @@ func main() {
 		log.Fatal(err)
 	}
 	fmt.Printf("%s,%sを作成しました\n", SERVER_PROPERTIES, PERMISSIONS_JSON)
+
+	fmt.Println("setupが完了しました")
+}
+
+func isExist(filename string) bool {
+	_, err := os.Stat(filename)
+	if os.IsExist(err) {
+		return true
+	} else {
+		return false
+	}
 }
