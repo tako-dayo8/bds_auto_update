@@ -15,4 +15,7 @@ jobs:
           chmod 600 ~/.ssh/id_ed25519
           ssh-keyscan gitlab.com >> ~/.ssh/known_hosts
       - name: Push to GitLab
-        run: git push --mirror git@gitlab.com:mukoudakota/bds_auto_update.git
+        run: |
+          git push --prune git@gitlab.com:mukoudakota/bds_auto_update.git \
+            '+refs/heads/*:refs/heads/*' \
+            '+refs/tags/*:refs/tags/*'
