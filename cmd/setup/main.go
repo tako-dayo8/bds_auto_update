@@ -332,15 +332,16 @@ func main() {
 			Default: false,
 		}
 
-		err := survey.AskOne(prompt, confirm)
+		err := survey.AskOne(prompt, &confirm)
 		if err != nil {
-			fmt.Println("survey.AskOneに失敗しました: ", err)
+			fmt.Println("Surveyに失敗しました: ", err)
 		}
 
 		if confirm {
 			if err := state.WriteState(base); err != nil {
 				log.Fatal(err)
 			}
+			// survey.AskOneが改行されないため
 			fmt.Println(strings.TrimSuffix(state.STATE_FILE_PATH, "./") + "を初期値で上書きしました")
 		}
 	} else {
@@ -353,6 +354,7 @@ func main() {
 	if !isExist(CONFIG_DIR) {
 		// config ディレクトリ作成
 		if err := os.Mkdir(CONFIG_DIR, 0755); err != nil {
+			fmt.Println(CONFIG_DIR + "ディレクトリの作成に失敗しました。すでに作成されている可能性があります")
 			fmt.Println(err)
 		} else {
 			fmt.Println(CONFIG_DIR + "ディレクトリを作成しました")
@@ -372,8 +374,11 @@ func main() {
 }
 
 func isExist(filename string) bool {
+	// fmt.Println("isExist filename:", filename)
 	_, err := os.Stat(filename)
-	if os.IsExist(err) {
+	// fmt.Println("os.Stat(filename):", err)
+	// fmt.Println("os.IsNotExist(err):", os.IsNotExist(err))
+	if !os.IsNotExist(err) {
 		return true
 	} else {
 		return false
