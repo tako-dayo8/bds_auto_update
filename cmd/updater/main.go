@@ -148,7 +148,7 @@ func unzip(filename string) (string, error) {
 	}
 
 	// ファイル名のディレクトリを作成する
-	if err := os.MkdirAll(dirname, os.ModeDir); err != nil {
+	if err := os.MkdirAll(dirname, 0666); err != nil {
 		log.Fatal(err)
 	}
 
