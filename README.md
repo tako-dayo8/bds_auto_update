@@ -27,6 +27,10 @@ bedrock_server_auto_update/
 
 ```sh
 sudo useradd -r -m -d /opt/bedrock -s /usr/sbin/nologin minecraft
+
+# useradd が作成するホームディレクトリは 750 などになり、
+# 一般ユーザーが cd できないためパーミッションを変更する
+sudo chmod 755 /opt/bedrock
 ```
 
 ### 2. バイナリのダウンロード
@@ -63,6 +67,11 @@ sudo -u minecraft ./setup-linux-amd64
 ```sh
 cd /opt/bedrock
 sudo -u minecraft ./updater-linux-amd64
+```
+
+### 5. サーバーバイナリに実行権限を与える
+```sh
+sudo -u minecraft chmod +x bedrock-server-* | sort -V | tail -1
 ```
 
 `updater` は以下の処理を行います。
