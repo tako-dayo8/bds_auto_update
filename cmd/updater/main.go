@@ -37,14 +37,12 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
 	fmt.Println("state.json: ", s)
 
 	list, err := getServerDownloadLinkList()
 	if err != nil {
 		log.Fatal(err)
 	}
-
 	fmt.Println("downloadLinkList: ", list)
 
 	var linux Links
@@ -54,12 +52,11 @@ func main() {
 			break
 		}
 	}
-
-	fmt.Println("linuxLink", linux)
+	fmt.Println("linuxLink: ", linux)
 
 	// 最新バージョンであった場合終了
 	if strings.Contains(linux.DownloadUrl, s.Version) {
-		fmt.Println("最新バージョンです")
+		fmt.Println("すでに最新バージョンです")
 		os.Exit(0)
 	}
 
@@ -67,30 +64,33 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	fmt.Println("Serverfilename: ", filename)
 
 	dirname, err := unzip(*filename)
 	if err != nil {
 		log.Fatal(err)
 	}
+	fmt.Println("Unzipped: ", dirname)
 
 	if err := swapConfigFile(dirname); err != nil {
 		log.Fatal(err)
 	}
+	fmt.Println("設定ファイル適用しました")
 
 	re := regexp.MustCompile(`[\d]+(?:\.[\d]+)+`)
 	version := re.FindString(dirname)
-
 	fmt.Println("get version: ", version)
 
 	now := time.Now()
-	newsate := state.State{
+	newstate := state.State{
 		Version:   version,
 		InstallAt: &now,
 	}
 
-	if err := state.WriteState(newsate); err != nil {
+	if err := state.WriteState(newstate); err != nil {
 		log.Fatal(err)
 	}
+	fmt.Println("現在の状態をファイルに保存しました")
 }
 
 func swapConfigFile(dirname string) error {
@@ -180,7 +180,7 @@ func unzip(filename string) (string, error) {
 	return dirname, nil
 }
 
-func getServer(url string) (filename *string, err error) {
+func getServer(url string) (*string, error) {
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err
