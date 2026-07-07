@@ -69,11 +69,6 @@ cd /opt/bedrock
 sudo -u minecraft ./updater-linux-amd64
 ```
 
-### 5. サーバーバイナリに実行権限を与える
-```sh
-sudo -u minecraft chmod +x bedrock-server-* | sort -V | tail -1
-```
-
 `updater` は以下の処理を行います。
 
 1. `state.json` から現在のバージョンを読み込む

@@ -37,7 +37,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println("state.json: ", s)
+	fmt.Println("state.json: ", s.Version, s.InstallAt)
 
 	list, err := getServerDownloadLinkList()
 	if err != nil {
@@ -148,7 +148,7 @@ func unzip(filename string) (string, error) {
 	}
 
 	// ファイル名のディレクトリを作成する
-	if err := os.MkdirAll(dirname, 0666); err != nil {
+	if err := os.MkdirAll(dirname, 0766); err != nil {
 		log.Fatal(err)
 	}
 
