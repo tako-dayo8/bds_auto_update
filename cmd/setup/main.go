@@ -342,13 +342,13 @@ func main() {
 				log.Fatal(err)
 			}
 			// survey.AskOneが改行されないため
-			fmt.Println(strings.TrimSuffix(state.STATE_FILE_PATH, "./") + "を初期値で上書きしました")
+			fmt.Println(strings.ReplaceAll(state.STATE_FILE_PATH, "./", "") + "を初期値で上書きしました")
 		}
 	} else {
 		if err := state.WriteState(base); err != nil {
 			log.Fatal(err)
 		}
-		fmt.Println(strings.TrimSuffix(state.STATE_FILE_PATH, "./") + "を作成しました")
+		fmt.Println(strings.ReplaceAll(state.STATE_FILE_PATH, "./", "") + "を作成しました")
 	}
 
 	if !isExist(CONFIG_DIR) {
