@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - main
-    paths: ["cmd"]
+    paths: ["cmd/**", "go.mod", "go.sum"]
 
 permissions:
   contents: write
